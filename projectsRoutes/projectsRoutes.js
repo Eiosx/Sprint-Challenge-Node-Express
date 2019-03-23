@@ -14,12 +14,12 @@ router.get('/', (req, res) => {
         });
 })
 
-//Need to add handling for non-existent id
+//Need to add handling for non-existent id. Could not solve this. Invalid ID goes straight to error handler but can't get message to show. 
 router.get('/:id', (req, res) => {
     const { id } = req.params;
-    console.log(id)
     projectModel.get(id)
         .then(project => {
+            console.log('hello', project)
             res.json(project);
         })
         .catch(err => {
@@ -27,16 +27,15 @@ router.get('/:id', (req, res) => {
         });
 })
 
-//Need to add handling if project has no actions or id is invalid
 router.get('/:id/actions', (req, res) => {
     const { id } = req.params;
     projectModel.getProjectActions(id)
-    .then(projectActions => {
-        res.json(projectActions);
-    })
-    .catch(err => {
-        res.status(500).json({errorMessage: "Could not get project actions."});
-    });
+        .then(projectActions => {
+            projectActions.length ? res.json(projectActions) : res.json({ message: "Project does not exist or has no actions." });
+        })
+        .catch(err => {
+            res.status(500).json({ errorMessage: "Could not get project actions." });
+        });
 })
 
 router.post('/', (req, res) => {
@@ -72,17 +71,25 @@ router.put('/:id', (req, res) => {
 
 })
 
-//Need to add code to return deleted obj instead of count of deleted and handle invalid id
 router.delete('/:id', (req, res) => {
     const { id } = req.params;
 
-    projectModel.remove(id)
-    .then(countOfDeleted => {
-        res.json(countOfDeleted);
-    })
-    .catch(err => {
-        res.status(500).json({errorMessage: "Error trying to delete project"});
+    projectModel.get(id).then(project => {
+        projectModel.remove(id)
+            .then(countOfDeleted => {
+                if (countOfDeleted) {
+                    res.json(project);
+                } else {
+                    res.status(400).json({ message: `Project at id:${id}, does not exist. Can not delete.` });
+                }
+            })
+            .catch(err => {
+                res.status(500).json({ errorMessage: "Error trying to delete project" });
+            });
+    }).catch(err => {
+        res.status(500).json({ errorMessage: "Error finding project." });
     });
+
 })
 
 
